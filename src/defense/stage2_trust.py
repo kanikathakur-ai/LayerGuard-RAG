@@ -174,11 +174,16 @@ def score_and_rerank_documents(
     classifier_scores: list[float],
     retrieval_scores: list[float],
     top_k: int = TOP_K_AFTER_TRUST,
+    weights: tuple[float, float, float] = (
+        TRUST_WEIGHT_ALIGNMENT,
+        TRUST_WEIGHT_CLASSIFIER,
+        TRUST_WEIGHT_COHERENCE,
+    ),
 ) -> list[dict[str, Any]]:
     """
     Full Stage 2 helper function.
 
-    This is the easiest function to call from the main pipeline.
+    Computes trust scores, re-ranks documents, and returns the top-k documents.
 
     Returns:
         A list of dictionaries containing document text, trust score, and rank.
@@ -187,6 +192,7 @@ def score_and_rerank_documents(
         doc_embeddings=doc_embeddings,
         classifier_scores=classifier_scores,
         retrieval_scores=retrieval_scores,
+        weights=weights,
     )
 
     ranked_pairs = rerank_and_filter(
