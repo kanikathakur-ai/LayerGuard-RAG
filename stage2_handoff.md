@@ -27,7 +27,7 @@ Note: F2=1.0 reflects easy synthetic training data (template-generated poison do
 
 | Path | Description |
 |------|-------------|
-| `results/stage1_classifier/` | Trained model + tokenizer (load with `load_classifier()`) |
+| `results/stage1_classifier/` | Trained model + tokenizer — load from HF (see below) |
 | `data/nq/documents.jsonl` | 50K Wikipedia passages — shared corpus |
 | `data/nq/faiss.index` + `faiss_embeddings.npy` | Pre-built FAISS index over corpus |
 | `data/nq/test_questions.jsonl` | 500 NQ questions; 239/500 have `gold_doc_id` set |
@@ -36,8 +36,8 @@ Note: F2=1.0 reflects easy synthetic training data (template-generated poison do
 | `config.py` | All hyperparameters |
 
 > **Large files not in git** — `data/` and `results/` are gitignored due to size.
-> Run the setup scripts below to regenerate, or copy from the shared server path
-> `/home/mjsheu/NLP203/` (nlp-gpu-01).
+> The trained Stage 1 model is on HuggingFace: **`michchicken/layerguard-stage1`**
+> Data and index are on nlp-gpu-01 at `/home/mjsheu/NLP203/data/`, or regenerate with the setup scripts below.
 
 ---
 
@@ -48,7 +48,8 @@ Stage 1 hands your code a list of surviving documents and their P(poisoned) scor
 ```python
 from src.defense.stage1_classifier import load_classifier, filter_documents
 
-model, tokenizer = load_classifier("results/stage1_classifier")
+model, tokenizer = load_classifier("michchicken/layerguard-stage1")  # loads from HuggingFace
+# or locally if you have it: load_classifier("results/stage1_classifier")
 
 # For each query + its top-10 retrieved docs:
 surviving_docs, scores = filter_documents(
