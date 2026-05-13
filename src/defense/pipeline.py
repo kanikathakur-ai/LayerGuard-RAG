@@ -11,7 +11,7 @@ from config import (
 from src.retriever import retrieve
 from src.generator import generate_answer
 from src.defense.stage1_classifier import score_documents
-from src.defense.stage2_trust import compute_trust_scores, rerank_and_filter
+from src.defense.stage2_trust import score_and_rerank_documents
 from src.defense.stage3_nli import (
     compute_pairwise_contradictions, build_contradiction_graph,
     flag_outliers, filter_outliers,
