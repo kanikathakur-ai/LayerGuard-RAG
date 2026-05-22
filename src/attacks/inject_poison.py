@@ -15,20 +15,23 @@ black-box approach. For full PoisonedRAG reproduction, integrate their
 official generation code (check Zou et al. 2025 GitHub).
 """
 
-import os
 import json
+import os
 import random
-import numpy as np
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Optional
+
+import numpy as np
 
 
 @dataclass
 class PoisonedExample:
     question: str
-    target_answer: str           # The attacker wants the LLM to output this
+    target_answer: str  # The attacker wants the LLM to output this
     poisoned_docs: list[str] = field(default_factory=list)
-    original_doc_ids: list[int] = field(default_factory=list)  # injected positions in corpus
+    original_doc_ids: list[int] = field(
+        default_factory=list
+    )  # injected positions in corpus
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +62,9 @@ _PREFIXES = [
 ]
 
 
-def generate_poison_doc(question: str, target_answer: str, seed: Optional[int] = None) -> str:
+def generate_poison_doc(
+    question: str, target_answer: str, seed: Optional[int] = None
+) -> str:
     """Generate a single adversarial document for the black-box attack."""
     rng = random.Random(seed)
     prefix = rng.choice(_PREFIXES)
@@ -82,7 +87,9 @@ def generate_poison_docs_for_question(
 ) -> list[str]:
     """Generate n_docs adversarial documents for one target question."""
     return [
-        generate_poison_doc(question, target_answer, seed=None if seed is None else seed + i)
+        generate_poison_doc(
+            question, target_answer, seed=None if seed is None else seed + i
+        )
         for i in range(n_docs)
     ]
 
@@ -90,6 +97,7 @@ def generate_poison_docs_for_question(
 # ---------------------------------------------------------------------------
 # Corpus injection
 # ---------------------------------------------------------------------------
+
 
 def inject_into_corpus(
     clean_documents: list[str],
@@ -114,8 +122,12 @@ def inject_into_corpus(
     rng = random.Random(seed)
     contaminated = clean_documents.copy()
     # Insert at random positions so poison doesn't cluster at the end
-    insert_positions = sorted(rng.sample(range(len(contaminated) + len(poison_docs_to_inject)),
-                                          len(poison_docs_to_inject)))
+    insert_positions = sorted(
+        rng.sample(
+            range(len(contaminated) + len(poison_docs_to_inject)),
+            len(poison_docs_to_inject),
+        )
+    )
     poison_indices = []
     offset = 0
     for i, doc in enumerate(poison_docs_to_inject):
@@ -139,6 +151,7 @@ def rebuild_index_with_poison(
     Returns (contaminated_docs, poison_indices, new_index, new_embeddings).
     """
     from src.retriever import build_index, inject_documents
+
     contaminated_docs, poison_indices = inject_into_corpus(
         clean_documents, poisoned_examples, poison_ratio, seed=seed
     )
@@ -150,6 +163,7 @@ def rebuild_index_with_poison(
 # ---------------------------------------------------------------------------
 # Serialization
 # ---------------------------------------------------------------------------
+
 
 def save_poisoned_examples(examples: list[PoisonedExample], path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -171,8 +185,9 @@ def load_poisoned_examples(path: str) -> list[PoisonedExample]:
 # Attack runner
 # ---------------------------------------------------------------------------
 
+
 def run_attack(
-    target_questions: list[dict],   # list of {"question": str, "target_answer": str}
+    target_questions: list[dict],  # list of {"question": str, "target_answer": str}
     n_docs_per_question: int = 5,
     output_path: Optional[str] = None,
     seed: int = 42,

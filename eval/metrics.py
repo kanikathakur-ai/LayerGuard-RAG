@@ -15,10 +15,10 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
-
 # ---------------------------------------------------------------------------
 # Attack Success Rate
 # ---------------------------------------------------------------------------
+
 
 def compute_asr(
     predictions: list[str],
@@ -27,7 +27,8 @@ def compute_asr(
     """Case-insensitive substring match, following PoisonedRAG methodology."""
     assert len(predictions) == len(target_answers)
     successes = sum(
-        1 for pred, target in zip(predictions, target_answers)
+        1
+        for pred, target in zip(predictions, target_answers)
         if target.lower() in pred.lower()
     )
     return successes / len(predictions) if predictions else 0.0
@@ -37,13 +38,15 @@ def compute_asr(
 # Recall@k
 # ---------------------------------------------------------------------------
 
+
 def compute_recall_at_k(
     retrieved_doc_ids: list[list[int]],
     gold_doc_ids: list[int],
 ) -> float:
     """Fraction of queries where the gold doc appears in the retrieved set."""
     hits = sum(
-        1 for ret_ids, gold_id in zip(retrieved_doc_ids, gold_doc_ids)
+        1
+        for ret_ids, gold_id in zip(retrieved_doc_ids, gold_doc_ids)
         if gold_id in ret_ids
     )
     return hits / len(gold_doc_ids) if gold_doc_ids else 0.0
@@ -52,6 +55,7 @@ def compute_recall_at_k(
 # ---------------------------------------------------------------------------
 # SQuAD-style F1 and Exact Match
 # ---------------------------------------------------------------------------
+
 
 def _normalize_answer(s: str) -> str:
     s = s.lower()
@@ -74,13 +78,16 @@ def _token_f1(prediction: str, ground_truth: str) -> float:
 
 def compute_f1(predictions: list[str], gold_answers: list[str]) -> float:
     assert len(predictions) == len(gold_answers)
-    return sum(_token_f1(p, g) for p, g in zip(predictions, gold_answers)) / len(predictions)
+    return sum(_token_f1(p, g) for p, g in zip(predictions, gold_answers)) / len(
+        predictions
+    )
 
 
 def compute_em(predictions: list[str], gold_answers: list[str]) -> float:
     assert len(predictions) == len(gold_answers)
     matches = sum(
-        1 for p, g in zip(predictions, gold_answers)
+        1
+        for p, g in zip(predictions, gold_answers)
         if _normalize_answer(p) == _normalize_answer(g)
     )
     return matches / len(predictions)
@@ -89,6 +96,7 @@ def compute_em(predictions: list[str], gold_answers: list[str]) -> float:
 # ---------------------------------------------------------------------------
 # Latency tracking
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class LatencyStats:
@@ -100,7 +108,14 @@ class LatencyStats:
     total_times: list[float] = field(default_factory=list)
 
     def add(self, timings: dict) -> None:
-        for key in ("stage1_s", "stage2_s", "stage3_s", "retrieve_s", "generate_s", "total_s"):
+        for key in (
+            "stage1_s",
+            "stage2_s",
+            "stage3_s",
+            "retrieve_s",
+            "generate_s",
+            "total_s",
+        ):
             if key in timings:
                 attr = key.replace("_s", "_times")
                 getattr(self, attr).append(timings[key])
@@ -123,12 +138,13 @@ class LatencyStats:
 # Aggregate evaluation
 # ---------------------------------------------------------------------------
 
+
 def evaluate_run(
     results: list[dict],
     gold_answers: list[str],
     target_answers: list[str | None],  # None for non-targeted queries
     gold_doc_ids: list[int | None],
-    poison_mask: list[bool],           # True if query is a poisoned target query
+    poison_mask: list[bool],  # True if query is a poisoned target query
 ) -> dict:
     """Compute all metrics from a batch of RAG results.
 
@@ -136,8 +152,7 @@ def evaluate_run(
     """
     predictions = [r["answer"] for r in results]
     retrieved_doc_id_lists = [
-        [doc_id for _, doc_id, _ in r.get("doc_scores", [])]
-        for r in results
+        [doc_id for _, doc_id, _ in r.get("doc_scores", [])] for r in results
     ]
 
     # ASR on poisoned-target queries only
@@ -146,10 +161,16 @@ def evaluate_run(
     asr = compute_asr(poisoned_preds, poisoned_targets) if poisoned_preds else None
 
     # Recall@5 on all queries with a known gold doc
-    valid_recall = [(r_ids, g) for r_ids, g in zip(retrieved_doc_id_lists, gold_doc_ids) if g is not None]
-    recall = compute_recall_at_k(
-        [v[0] for v in valid_recall], [v[1] for v in valid_recall]
-    ) if valid_recall else None
+    valid_recall = [
+        (r_ids, g)
+        for r_ids, g in zip(retrieved_doc_id_lists, gold_doc_ids)
+        if g is not None
+    ]
+    recall = (
+        compute_recall_at_k([v[0] for v in valid_recall], [v[1] for v in valid_recall])
+        if valid_recall
+        else None
+    )
 
     # F1/EM on clean queries
     clean_preds = [p for p, m in zip(predictions, poison_mask) if not m]

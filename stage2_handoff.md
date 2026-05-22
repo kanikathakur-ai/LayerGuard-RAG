@@ -1,7 +1,7 @@
 # Stage 2 Handoff: Trust Scoring
 
-**From:** Stage 1 (classifier)  
-**To:** Stage 2 (trust scoring + re-ranking)  
+**From:** Stage 1 (classifier)
+**To:** Stage 2 (trust scoring + re-ranking)
 **Date:** 2026-05-12
 
 ---
@@ -18,7 +18,7 @@ Stage 1 fine-tuned `microsoft/deberta-v3-base` as a binary cross-encoder that sc
 | Validation (epoch 3) | 1.000 | 1.15e-05 |
 | **Test (held-out)** | **1.000** | — |
 
-Training: 8,000 examples, 3 epochs, ~15 min on RTX 3090, `train_loss=0.0074`.  
+Training: 8,000 examples, 3 epochs, ~15 min on RTX 3090, `train_loss=0.0074`.
 Note: F2=1.0 reflects easy synthetic training data (template-generated poison docs). Real-world F2 on the NQ test set at 5–20% poison ratios is the meaningful number — that requires the full pipeline evaluation in `scripts/run_experiments.py`.
 
 ---

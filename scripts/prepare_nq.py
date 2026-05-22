@@ -17,10 +17,12 @@ import json
 import os
 import random
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from datasets import load_dataset
 from tqdm import tqdm
+
 from config import NQ_DIR
 
 N_CORPUS = 50_000
@@ -111,7 +113,9 @@ def main():
         for q in held_out:
             f.write(json.dumps(q) + "\n")
     print(f"Wrote {len(held_out)} held-out questions to {held_path}")
-    print("Done. Next: python scripts/build_index.py && python scripts/gen_stage1_data.py")
+    print(
+        "Done. Next: python scripts/build_index.py && python scripts/gen_stage1_data.py"
+    )
 
 
 if __name__ == "__main__":

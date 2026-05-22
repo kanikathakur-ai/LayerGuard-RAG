@@ -63,9 +63,7 @@ def compute_semantic_alignment(doc_embeddings: np.ndarray) -> list[float]:
 
     for i in range(len(doc_embeddings)):
         other_similarities = [
-            sim_matrix[i, j]
-            for j in range(len(doc_embeddings))
-            if j != i
+            sim_matrix[i, j] for j in range(len(doc_embeddings)) if j != i
         ]
 
         avg_alignment = float(np.mean(other_similarities))
@@ -109,10 +107,7 @@ def compute_trust_scores(
     if num_docs == 0:
         return []
 
-    if not (
-        len(classifier_scores) == num_docs
-        and len(retrieval_scores) == num_docs
-    ):
+    if not (len(classifier_scores) == num_docs and len(retrieval_scores) == num_docs):
         raise ValueError(
             "doc_embeddings, classifier_scores, and retrieval_scores must have the same length"
         )
@@ -137,11 +132,7 @@ def compute_trust_scores(
         clean_confidence_scores,
         coherence_scores,
     ):
-        trust_score = (
-            wa * alignment
-            + wc * clean_confidence
-            + wh * coherence
-        )
+        trust_score = wa * alignment + wc * clean_confidence + wh * coherence
 
         trust_scores.append(float(trust_score))
 
