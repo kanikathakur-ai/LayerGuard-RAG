@@ -1,7 +1,7 @@
 # Stage 2 Handoff: Trust Scoring
 
-**From:** Stage 1 (classifier)  
-**To:** Stage 2 (trust scoring + re-ranking)  
+**From:** Stage 1 (classifier)
+**To:** Stage 2 (trust scoring + re-ranking)
 **Date:** 2026-05-12
 
 ---
@@ -18,7 +18,7 @@ Stage 1 fine-tuned `microsoft/deberta-v3-base` as a binary cross-encoder that sc
 | Validation (epoch 3) | 1.000 | 1.15e-05 |
 | **Test (held-out)** | **1.000** | — |
 
-Training: 8,000 examples, 3 epochs, ~15 min on RTX 3090, `train_loss=0.0074`.  
+Training: 8,000 examples, 3 epochs, ~15 min on RTX 3090, `train_loss=0.0074`.
 Note: F2=1.0 reflects easy synthetic training data (template-generated poison docs). Real-world F2 on the NQ test set at 5–20% poison ratios is the meaningful number — that requires the full pipeline evaluation in `scripts/run_experiments.py`.
 
 ---
@@ -36,8 +36,13 @@ Note: F2=1.0 reflects easy synthetic training data (template-generated poison do
 | `config.py` | All hyperparameters |
 
 > **Large files not in git** — `data/` and `results/` are gitignored due to size.
-> The trained Stage 1 model is on HuggingFace: **`michchicken/layerguard-stage1`**
-> Data and index are on nlp-gpu-01 at `/home/mjsheu/NLP203/data/`, or regenerate with the setup scripts below.
+> The trained Stage 1 model is on HuggingFace: **`michchicken/layerguard-stage1`** (loaded automatically by the pipeline).
+>
+> **To get the data after cloning, run from the repo root:**
+> ```bash
+> python scripts/fetch_data.py
+> ```
+> This downloads the corpus, FAISS index, and synthetic training data from the public HF dataset `michchicken/layerguard-nq` into `data/`. No authentication required. Re-running is safe — unchanged files are skipped via HF's local cache.
 
 ---
 
@@ -102,17 +107,28 @@ The pipeline orchestrator is `src/defense/pipeline.py:defend_and_answer()`. It a
 
 ---
 
-## Regenerating Data/Model (if needed)
+## Getting Data / Regenerating (if needed)
 
+**Fastest — fetch from HuggingFace (recommended):**
 ```bash
-# From /home/mjsheu/NLP203, using the conda base Python:
+python scripts/fetch_data.py   # downloads corpus, FAISS index, synthetic training data
+```
+
+**If you need to regenerate from scratch:**
+```bash
 python scripts/prepare_nq.py                     # ~30s: downloads corpus + questions
 python scripts/build_index.py                    # ~6 min: builds FAISS index
 python scripts/gen_stage1_data.py                # ~30s: generates training data
-CUDA_VISIBLE_DEVICES=3 ~/miniconda3/bin/python scripts/train_stage1.py \
+CUDA_VISIBLE_DEVICES=3 python scripts/train_stage1.py \
     --train-data data/synthetic_train/train.jsonl \
     --val-data   data/synthetic_train/val.jsonl \
     --output-dir results/stage1_classifier      # ~15 min on RTX 3090
+```
+
+**To re-upload updated data** (only needed if you change the data files):
+```bash
+huggingface-cli login   # once, using your HF write token
+python scripts/upload_data.py
 ```
 
 ---
