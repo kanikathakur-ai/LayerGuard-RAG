@@ -65,23 +65,23 @@ def defend_and_answer(
 
     # Stage 2: trust scoring + re-rank
     # Stage 2: trust scoring + re-rank
-t2 = time.perf_counter()
-
-s1_embs = np.array([doc_embeddings[doc_id] for doc_id in s1_ids])
-
-s2_ranked = score_and_rerank_documents(
-    documents=list(s1_docs),
-    doc_embeddings=s1_embs,
-    classifier_scores=list(s1_classifier_scores),
-    retrieval_scores=list(s1_ret_scores),
-    top_k=top_k_trust,
-    weights=trust_weights,
-)
-
-s2_docs = [item["document"] for item in s2_ranked]
-s2_trust_scores = [item["trust_score"] for item in s2_ranked]
-
-timings["stage2_s"] = time.perf_counter() - t2
+    t2 = time.perf_counter()
+    
+    s1_embs = np.array([doc_embeddings[doc_id] for doc_id in s1_ids])
+    
+    s2_ranked = score_and_rerank_documents(
+        documents=list(s1_docs),
+        doc_embeddings=s1_embs,
+        classifier_scores=list(s1_classifier_scores),
+        retrieval_scores=list(s1_ret_scores),
+        top_k=top_k_trust,
+        weights=trust_weights,
+    )
+    
+    s2_docs = [item["document"] for item in s2_ranked]
+    s2_trust_scores = [item["trust_score"] for item in s2_ranked]
+    
+    timings["stage2_s"] = time.perf_counter() - t2
 
     # Stage 3: NLI contradiction check
     t3 = time.perf_counter()
