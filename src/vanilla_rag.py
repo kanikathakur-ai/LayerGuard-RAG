@@ -1,10 +1,12 @@
 """End-to-end vanilla RAG baseline — no defense."""
 
 import time
+
 from sentence_transformers import SentenceTransformer
+
 from config import EMBEDDING_MODEL, TOP_K_RETRIEVAL
-from src.retriever import retrieve
 from src.generator import generate_answer
+from src.retriever import retrieve
 
 
 def run_vanilla_rag(
@@ -53,6 +55,7 @@ def batch_vanilla_rag(
     k: int = TOP_K_RETRIEVAL,
 ) -> list[dict]:
     from tqdm import tqdm
+
     return [
         run_vanilla_rag(q, index, documents, encoder, model, tokenizer, k=k)
         for q in tqdm(queries, desc="Vanilla RAG")

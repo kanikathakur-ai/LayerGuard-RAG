@@ -10,18 +10,27 @@ Usage:
 import argparse
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import numpy as np
 from datasets import Dataset
+from sklearn.metrics import classification_report, fbeta_score
 from transformers import (
-    AutoTokenizer, AutoModelForSequenceClassification,
-    TrainingArguments, Trainer, EarlyStoppingCallback,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    EarlyStoppingCallback,
+    Trainer,
+    TrainingArguments,
 )
-from sklearn.metrics import fbeta_score, classification_report
+
 from config import (
-    STAGE1_MODEL, STAGE1_MAX_LENGTH, STAGE1_TRAIN_EPOCHS,
-    STAGE1_LEARNING_RATE, STAGE1_BATCH_SIZE, STAGE1_MODEL_DIR,
+    STAGE1_BATCH_SIZE,
+    STAGE1_LEARNING_RATE,
+    STAGE1_MAX_LENGTH,
+    STAGE1_MODEL,
+    STAGE1_MODEL_DIR,
+    STAGE1_TRAIN_EPOCHS,
 )
 from src.attacks.generate_train_data import load_split
 
@@ -52,13 +61,19 @@ def main():
     args = parser.parse_args()
 
     tokenizer = AutoTokenizer.from_pretrained(STAGE1_MODEL)
-    model = AutoModelForSequenceClassification.from_pretrained(STAGE1_MODEL, num_labels=2)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        STAGE1_MODEL, num_labels=2
+    )
 
     train_raw = load_split("train", data_dir=os.path.dirname(args.train_data))
     val_raw = load_split("val", data_dir=os.path.dirname(args.val_data))
 
-    train_ds = Dataset.from_list(train_raw).map(lambda b: tokenize(b, tokenizer), batched=True)
-    val_ds = Dataset.from_list(val_raw).map(lambda b: tokenize(b, tokenizer), batched=True)
+    train_ds = Dataset.from_list(train_raw).map(
+        lambda b: tokenize(b, tokenizer), batched=True
+    )
+    val_ds = Dataset.from_list(val_raw).map(
+        lambda b: tokenize(b, tokenizer), batched=True
+    )
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
@@ -92,7 +107,9 @@ def main():
 
     # Evaluate on test set
     test_raw = load_split("test", data_dir=os.path.dirname(args.train_data))
-    test_ds = Dataset.from_list(test_raw).map(lambda b: tokenize(b, tokenizer), batched=True)
+    test_ds = Dataset.from_list(test_raw).map(
+        lambda b: tokenize(b, tokenizer), batched=True
+    )
     results = trainer.evaluate(test_ds)
     print("Test F2:", results.get("eval_f2"))
 

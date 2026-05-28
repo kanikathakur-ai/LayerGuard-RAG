@@ -1,7 +1,7 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from config import GENERATOR_MODEL, GENERATOR_MAX_NEW_TOKENS, GENERATOR_LOAD_IN_4BIT
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
+from config import GENERATOR_LOAD_IN_4BIT, GENERATOR_MAX_NEW_TOKENS, GENERATOR_MODEL
 
 _PROMPT_TEMPLATE = """\
 Based on the following documents, answer the question with a short factual answer.
@@ -52,7 +52,9 @@ def generate_answer(
     prompt = _PROMPT_TEMPLATE.format(context=context, query=query)
 
     messages = [{"role": "user", "content": prompt}]
-    formatted = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    formatted = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
 
     inputs = tokenizer(formatted, return_tensors="pt", truncation=True, max_length=4096)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
@@ -66,7 +68,7 @@ def generate_answer(
             pad_token_id=tokenizer.eos_token_id,
         )
 
-    new_tokens = output_ids[0][inputs["input_ids"].shape[1]:]
+    new_tokens = output_ids[0][inputs["input_ids"].shape[1] :]
     answer = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
     # Trim to first sentence/line for short factual answers
     answer = answer.split("\n")[0].split(".")[0].strip()

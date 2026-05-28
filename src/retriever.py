@@ -1,10 +1,12 @@
-import os
 import json
-import numpy as np
+import os
+
 import faiss
+import numpy as np
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-from config import EMBEDDING_MODEL, EMBEDDING_DIM, TOP_K_RETRIEVAL
+
+from config import EMBEDDING_DIM, EMBEDDING_MODEL, TOP_K_RETRIEVAL
 
 
 def _load_encoder(model_name: str = EMBEDDING_MODEL) -> SentenceTransformer:
@@ -17,17 +19,23 @@ def _normalize(vecs: np.ndarray) -> np.ndarray:
     return vecs / np.maximum(norms, 1e-10)
 
 
-def build_index(documents: list[str], encoder: SentenceTransformer | None = None) -> tuple[faiss.Index, np.ndarray]:
+def build_index(
+    documents: list[str], encoder: SentenceTransformer | None = None
+) -> tuple[faiss.Index, np.ndarray]:
     """Encode documents and build a FAISS IndexFlatIP. Returns (index, embeddings)."""
     if encoder is None:
         encoder = _load_encoder()
     print(f"Encoding {len(documents)} documents...")
-    embeddings = encoder.encode(documents, batch_size=256, show_progress_bar=True, convert_to_numpy=True)
+    embeddings = encoder.encode(
+        documents, batch_size=256, show_progress_bar=True, convert_to_numpy=True
+    )
     embeddings = _normalize(embeddings).astype("float32")
 
     if len(documents) > 100_000:
         quantizer = faiss.IndexFlatIP(EMBEDDING_DIM)
-        index = faiss.IndexIVFFlat(quantizer, EMBEDDING_DIM, 256, faiss.METRIC_INNER_PRODUCT)
+        index = faiss.IndexIVFFlat(
+            quantizer, EMBEDDING_DIM, 256, faiss.METRIC_INNER_PRODUCT
+        )
         index.train(embeddings)
     else:
         index = faiss.IndexFlatIP(EMBEDDING_DIM)
@@ -36,7 +44,9 @@ def build_index(documents: list[str], encoder: SentenceTransformer | None = None
     return index, embeddings
 
 
-def save_index(index: faiss.Index, embeddings: np.ndarray, index_path: str, embeddings_path: str) -> None:
+def save_index(
+    index: faiss.Index, embeddings: np.ndarray, index_path: str, embeddings_path: str
+) -> None:
     faiss.write_index(index, index_path)
     np.save(embeddings_path, embeddings)
 

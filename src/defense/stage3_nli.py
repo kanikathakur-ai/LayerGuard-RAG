@@ -5,16 +5,20 @@ contradictions between retrieved documents. Flags docs that contradict ≥2
 others as outliers.
 """
 
+from itertools import combinations
+
 import numpy as np
 import torch
-from itertools import combinations
 from transformers import pipeline as hf_pipeline
-from config import NLI_MODEL, CONTRADICTION_THRESHOLD, MIN_CONTRADICTIONS_TO_FLAG
+
+from config import CONTRADICTION_THRESHOLD, MIN_CONTRADICTIONS_TO_FLAG, NLI_MODEL
 
 
 def load_nli_model(model_name: str = NLI_MODEL):
     device = 0 if torch.cuda.is_available() else -1
-    return hf_pipeline("text-classification", model=model_name, device=device, top_k=None)
+    return hf_pipeline(
+        "text-classification", model=model_name, device=device, top_k=None
+    )
 
 
 def compute_pairwise_contradictions(
@@ -34,7 +38,9 @@ def compute_pairwise_contradictions(
         return matrix
 
     # Truncate documents to stay within 512-token limit
-    truncated = [doc[:1000] for doc in documents]  # rough char truncation; tokenizer handles the rest
+    truncated = [
+        doc[:1000] for doc in documents
+    ]  # rough char truncation; tokenizer handles the rest
 
     inputs = [{"text": truncated[i], "text_pair": truncated[j]} for i, j in pairs]
     results = nli_pipeline(inputs, truncation=True, max_length=max_length)
@@ -69,7 +75,9 @@ def flag_outliers(
     min_contradictions: int = MIN_CONTRADICTIONS_TO_FLAG,
 ) -> list[int]:
     """Return indices of docs that contradict ≥ min_contradictions other docs."""
-    return [idx for idx, neighbors in graph.items() if len(neighbors) >= min_contradictions]
+    return [
+        idx for idx, neighbors in graph.items() if len(neighbors) >= min_contradictions
+    ]
 
 
 def filter_outliers(

@@ -7,18 +7,24 @@ Usage:
 import argparse
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from sentence_transformers import SentenceTransformer
-from config import EMBEDDING_MODEL, INDEX_PATH, DOCS_PATH
-from src.retriever import load_documents, build_index, save_index
+
+from config import DOCS_PATH, EMBEDDING_MODEL, INDEX_PATH
+from src.retriever import build_index, load_documents, save_index
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--docs", default=DOCS_PATH, help="Path to documents.jsonl")
-    parser.add_argument("--index-out", default=INDEX_PATH, help="Output FAISS index path")
-    parser.add_argument("--embeddings-out", default=INDEX_PATH.replace(".index", "_embeddings.npy"))
+    parser.add_argument(
+        "--index-out", default=INDEX_PATH, help="Output FAISS index path"
+    )
+    parser.add_argument(
+        "--embeddings-out", default=INDEX_PATH.replace(".index", "_embeddings.npy")
+    )
     args = parser.parse_args()
 
     print(f"Loading documents from {args.docs}...")

@@ -5,8 +5,9 @@ Implement fully in Week 1.
 """
 
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from config import STAGE1_MODEL, STAGE1_MAX_LENGTH, STAGE1_THRESHOLD
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from config import STAGE1_MAX_LENGTH, STAGE1_MODEL, STAGE1_THRESHOLD
 
 
 def load_classifier(model_dir: str):
@@ -29,7 +30,7 @@ def score_documents(
     scores = []
     device = next(model.parameters()).device
     for i in range(0, len(documents), batch_size):
-        batch_docs = documents[i:i + batch_size]
+        batch_docs = documents[i : i + batch_size]
         enc = tokenizer(
             [query] * len(batch_docs),
             batch_docs,

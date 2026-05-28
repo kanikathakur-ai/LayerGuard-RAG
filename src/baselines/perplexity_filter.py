@@ -4,10 +4,9 @@ Zou et al. report >87% ASR even against this filter, establishing a weak
 baseline. High perplexity = suspicious document.
 """
 
-import torch
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 _GPT2_MODEL = "openai-community/gpt2"
 
@@ -23,7 +22,9 @@ def load_perplexity_model(model_name: str = _GPT2_MODEL):
 
 
 def compute_perplexity(text: str, model, tokenizer, max_length: int = 512) -> float:
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=max_length)
+    inputs = tokenizer(
+        text, return_tensors="pt", truncation=True, max_length=max_length
+    )
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     with torch.no_grad():
         outputs = model(**inputs, labels=inputs["input_ids"])
