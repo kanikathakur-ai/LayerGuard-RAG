@@ -1,0 +1,213 @@
+{
+  "metrics": {
+    "total_questions": 500,
+    "questions_with_gold_doc_id": 239,
+    "stage2_recall_at_5": 0.6485355648535565,
+    "recall_hits": 155,
+    "avg_stage1_survivors": 10.0,
+    "avg_stage2_docs_returned": 5.0,
+    "avg_stage2_latency_s": 0.000344722718000412
+  },
+  "examples": [
+    {
+      "question": "when was the last time anyone was on the moon",
+      "gold_doc_id": null,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        30930,
+        30997,
+        30933,
+        30958,
+        30961
+      ],
+      "stage2_trust_scores": [
+        0.9812915254819113,
+        0.9443272823142501,
+        0.8022867883304992,
+        0.7645947849480126,
+        0.7545178304326048
+      ],
+      "stage2_latency_s": 0.0007984638214111328
+    },
+    {
+      "question": "who wrote he ain't heavy he's my brother lyrics",
+      "gold_doc_id": null,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        35851,
+        20211,
+        35855,
+        35857,
+        35858
+      ],
+      "stage2_trust_scores": [
+        0.7981763870096059,
+        0.7657979537061599,
+        0.7381594660923045,
+        0.727799150245978,
+        0.69997821470497
+      ],
+      "stage2_latency_s": 0.0005455389618873596
+    },
+    {
+      "question": "how many seasons of the bastard executioner are there",
+      "gold_doc_id": 34921,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        30459,
+        18116,
+        18107,
+        18119,
+        34921
+      ],
+      "stage2_trust_scores": [
+        0.9232545306681468,
+        0.9173054823314085,
+        0.8357651801557349,
+        0.7360815633963254,
+        0.6680783132742051
+      ],
+      "stage2_latency_s": 0.00032200291752815247
+    },
+    {
+      "question": "when did the eagles win last super bowl",
+      "gold_doc_id": 47969,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        47924,
+        47929,
+        42125,
+        47969,
+        7633
+      ],
+      "stage2_trust_scores": [
+        0.9424143421598232,
+        0.863514913879579,
+        0.8064701440353651,
+        0.7851025927606383,
+        0.7803251159076702
+      ],
+      "stage2_latency_s": 0.0003205202519893646
+    },
+    {
+      "question": "who won last year's ncaa women's basketball",
+      "gold_doc_id": 8224,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        8196,
+        8197,
+        8159,
+        8188,
+        8170
+      ],
+      "stage2_trust_scores": [
+        0.9999829000689715,
+        0.8777679681901042,
+        0.8434457167242897,
+        0.8122816696265112,
+        0.7524954976960206
+      ],
+      "stage2_latency_s": 0.0003239437937736511
+    },
+    {
+      "question": "when did the isle of wight become an island",
+      "gold_doc_id": 45201,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        45229,
+        45197,
+        45244,
+        45238,
+        45202
+      ],
+      "stage2_trust_scores": [
+        0.990707200187823,
+        0.9037443145211849,
+        0.7580704140853318,
+        0.7487190545920502,
+        0.7476056150511511
+      ],
+      "stage2_latency_s": 0.0003226622939109802
+    },
+    {
+      "question": "love yourself by justin bieber is about who",
+      "gold_doc_id": null,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        12084,
+        12087,
+        151,
+        12088,
+        7908
+      ],
+      "stage2_trust_scores": [
+        0.9955662923100863,
+        0.9485630936061334,
+        0.8413420035514628,
+        0.816464561626217,
+        0.7461013630706134
+      ],
+      "stage2_latency_s": 0.0003481768071651459
+    },
+    {
+      "question": "who was the ruler of england in 1616",
+      "gold_doc_id": 26455,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        7444,
+        7524,
+        7453,
+        7526,
+        26456
+      ],
+      "stage2_trust_scores": [
+        0.9615804279178829,
+        0.9054545130987086,
+        0.741760817592342,
+        0.729115322452605,
+        0.5983361223293322
+      ],
+      "stage2_latency_s": 0.0003245994448661804
+    },
+    {
+      "question": "what is the hot coffee mod in san andreas",
+      "gold_doc_id": null,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        41881,
+        40553,
+        40590,
+        40543,
+        40625
+      ],
+      "stage2_trust_scores": [
+        0.9153414832602189,
+        0.8122111528874317,
+        0.8040265815910534,
+        0.7611880774360416,
+        0.7572696993026717
+      ],
+      "stage2_latency_s": 0.0003408007323741913
+    },
+    {
+      "question": "what is the maximum data rate for the 802.11a standard select one",
+      "gold_doc_id": null,
+      "stage1_survivors": 10,
+      "stage2_doc_ids": [
+        6472,
+        28166,
+        28156,
+        6468,
+        21331
+      ],
+      "stage2_trust_scores": [
+        0.9737383554779457,
+        0.9511243496523794,
+        0.9347177235265414,
+        0.7710871087236209,
+        0.7517016823167544
+      ],
+      "stage2_latency_s": 0.00035472214221954346
+    }
+  ]
+}
