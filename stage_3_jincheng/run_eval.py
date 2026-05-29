@@ -44,7 +44,7 @@ from sentence_transformers import SentenceTransformer
 from config import EMBEDDING_MODEL, NLI_MODEL
 from src.retriever import load_documents, load_index, inject_documents
 from src.defense.stage1_classifier import load_classifier
-from src.attacks.inject_poison import run_attack
+from src.attacks.inject_poison import run_attack, TEMPLATES
 from src.attacks.poisonedrag_attack import (
     load_poisonedrag,
     poisonedrag_questions,
@@ -90,19 +90,22 @@ def load_generator_with_fallback(forced=None):
 
 
 def build_poisoned_corpus(target_qs, dose, clean_docs, clean_emb, encoder,
-                          poison_examples=None):
+                          poison_examples=None, template_name="assertion"):
     """Append `dose` poison docs per target question; return contaminated state.
 
     poison_examples: pre-built list[PoisonedExample] (used for --attack poisonedrag).
     When None, generates template-based poison from target_qs (original behaviour).
     dose caps the number of docs taken per example (max 5 for PoisonedRAG).
+    template_name: which TEMPLATES entry to use (only applies when poison_examples is None).
     """
     if poison_examples is None:
         attack_targets = [
             {"question": q["question"], "target_answer": q["target_answer"]}
             for q in target_qs
         ]
-        examples = run_attack(attack_targets, n_docs_per_question=dose, seed=42)
+        examples = run_attack(
+            attack_targets, n_docs_per_question=dose, seed=42, template_name=template_name
+        )
     else:
         examples = [
             type(ex)(
@@ -227,6 +230,9 @@ def main():
                     help="tiny smoke run: 3 targets, 2 clean, dose=[5]")
     ap.add_argument("--attack", choices=["template", "poisonedrag"], default="template",
                     help="Attack source: template (original) or poisonedrag (GPT-4 generated)")
+    ap.add_argument("--template", default="assertion",
+                    choices=list(TEMPLATES.keys()),
+                    help="Poison template for --attack template (default: assertion = training distribution)")
     ap.add_argument("--adv-path", default="PoisonedRAG/results/adv_targeted_results/nq.json",
                     help="Path to adv_targeted_results JSON (used when --attack poisonedrag)")
     ap.add_argument("--resolve-gold", action="store_true",
@@ -239,7 +245,7 @@ def main():
     generate = not args.no_generate
     print(f"Config: n_target={args.n_target} n_clean={args.n_clean} "
           f"doses={args.doses} configs={args.configs} generate={generate} "
-          f"attack={args.attack}")
+          f"attack={args.attack} template={args.template}")
 
     print("Loading corpus + index + embeddings + encoder ...")
     clean_docs = load_documents(DOCS_PATH)
@@ -290,6 +296,7 @@ def main():
             "nli_model": args.nli_model, "generator_model": gen_name,
             "generate": generate,
             "attack": args.attack,
+            "template": args.template if args.attack == "template" else None,
             "adv_path": args.adv_path if args.attack == "poisonedrag" else None,
             "status": "running",
             "cells_total": cells_total,
@@ -321,7 +328,8 @@ def main():
         print(f"\n=== POISONED dose={dose} (poison docs / target question) ===")
         index, emb, docs, pset = build_poisoned_corpus(
             target_qs, dose, clean_docs, clean_emb, encoder,
-            poison_examples=poison_examples)
+            poison_examples=poison_examples,
+            template_name=args.template)
         print(f"  injected {len(pset)} poison docs; corpus now {len(docs)} docs")
         for defense in args.configs:
             print(f"  [dose={dose}] defense={defense}")
