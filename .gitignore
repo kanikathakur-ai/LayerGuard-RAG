@@ -171,3 +171,6 @@ results/
 # Vendored attack repo and paper PDF
 PoisonedRAG/
 poisonedrag.pdf
+
+# Claude Code internal files
+.claude/
