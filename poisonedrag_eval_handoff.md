@@ -38,17 +38,10 @@ Then `uv lock && uv sync` → `torch==2.12.0+cu126`, `cuda: True`. **Always use 
 
 ---
 
-## The experiment currently running
+## ✅ Completed run
 
-**Session:** tmux `pr` (attach: `tmux attach -t pr`, log: `tail -f results/logs/pr.log`)  
-**Output:** `results/stage3_eval_poisonedrag.json` (written incrementally after each cell)  
-**Monitor:** `python .claude/skills/monitor-experiments/check_experiment.py`
-
-**Status as of 2026-05-28 ~21:15:** ✅ Running healthy — **cell 1/14**, GPU 1 at 100% util (8.0/24 GiB).
-- Gold resolution: 91/100 targets found in corpus.
-- First completed cell: `clean / none` → ASR=0.050, Recall@5=0.870, F1=0.075.
-
-**Full command:**
+**Output:** `results/stage3_eval_poisonedrag.json` (14/14 cells, finished 2026-05-28)  
+**Command used:**
 ```bash
 CUDA_VISIBLE_DEVICES=1 uv run python stage_3_jincheng/run_eval.py \
   --attack poisonedrag \
@@ -58,19 +51,42 @@ CUDA_VISIBLE_DEVICES=1 uv run python stage_3_jincheng/run_eval.py \
   --output results/stage3_eval_poisonedrag.json
 ```
 
-**What it runs:** 14 cells — 2 clean baseline + 3 doses × 4 defense configs:
+### Full results
 
-| condition | defense |
-|-----------|---------|
-| clean | none, full |
-| poison dose=1 | none, stage1, stage12, full |
-| poison dose=3 | none, stage1, stage12, full |
-| poison dose=5 | none, stage1, stage12, full |
+| condition | defense | ASR | Recall@5 | F1 |
+|-----------|---------|-----|----------|----|
+| clean | none | 0.050 | 0.870 | 0.075 |
+| clean | full | 0.050 | 0.774 | 0.072 |
+| poison_dose1 | none | 0.450 | 0.826 | 0.075 |
+| poison_dose1 | stage1 | 0.450 | 0.826 | 0.075 |
+| poison_dose1 | stage12 | 0.420 | 0.713 | 0.072 |
+| poison_dose1 | full | 0.420 | 0.713 | 0.072 |
+| poison_dose3 | none | 0.670 | 0.713 | 0.075 |
+| poison_dose3 | stage1 | 0.670 | 0.713 | 0.075 |
+| poison_dose3 | stage12 | 0.700 | 0.626 | 0.072 |
+| poison_dose3 | full | 0.700 | 0.626 | 0.072 |
+| poison_dose5 | none | 0.940 | 0.261 | 0.075 |
+| poison_dose5 | stage1 | 0.940 | 0.261 | 0.075 |
+| poison_dose5 | stage12 | 0.970 | 0.200 | 0.072 |
+| poison_dose5 | full | 0.970 | 0.200 | 0.072 |
 
-**Expected runtime:** ~60–70 min on RTX 3090 (same as template run at 63 min).  
-**Expected result:** vanilla ASR clearly > 0 across doses; Stage 1 ASR no longer trivially 0 (Stage 1 no longer memorizes the attack); Stage 3 potentially shows non-zero delta vs Stage 12.
+### Key findings
 
-> **Smoke test:** No longer needed — full run started and is healthy. If the full run dies, relaunch on any free GPU (2–5 are idle at ~284 MiB each); replace `CUDA_VISIBLE_DEVICES=1` accordingly.
+1. **Stage 1 provides zero protection** — `stage1_survivor_poison=100` at every dose. The DeBERTa classifier was trained on template-style poison and doesn't generalise to GPT-4-generated adversarial text. ASR is identical to undefended at all doses.
+
+2. **Stage 2 makes things worse at higher doses** — ASR increases (0.67→0.70 at dose=3, 0.94→0.97 at dose=5). The trust scorer promotes poison docs because they are topically relevant to the query, displacing gold docs.
+
+3. **Stage 3 contributes nothing** — `full` and `stage12` are identical at every row. The NLI contradiction check doesn't fire because PoisonedRAG adversarial texts are written to be plausible and non-contradictory with peer documents.
+
+4. **Clean ASR noise floor is 0.05, not 0** — 25/100 target answers are ≤5 characters (e.g. `"2"`, `"no"`, `"yes"`, `"Paris"`). Substring match produces false positives on clean queries. Consider filtering short targets or using word-boundary match for a cleaner baseline.
+
+5. **Dose=5 collapses Recall@5 to 0.26 even before any defense** — at 5 poison docs per query the retriever is flooded; gold docs are already displaced before the pipeline runs.
+
+### Next steps
+
+- **Retrain Stage 1** on PoisonedRAG GPT-4 poison (or a diverse mix) — the template-only training is the primary failure point.
+- **Re-evaluate Stage 2** trust scoring under adversarial conditions — or gate it so it can't increase final_poison count.
+- **Re-evaluate Stage 3** NLI thresholds — may need lowering, or a different contradiction signal for factual perturbations (off-by-one numbers, wrong dates).
 
 ---
 
