@@ -45,6 +45,11 @@ from config import EMBEDDING_MODEL, NLI_MODEL
 from src.retriever import load_documents, load_index, inject_documents
 from src.defense.stage1_classifier import load_classifier
 from src.attacks.inject_poison import run_attack
+from src.attacks.poisonedrag_attack import (
+    load_poisonedrag,
+    poisonedrag_questions,
+    resolve_gold_doc_ids,
+)
 from eval.metrics import compute_asr, compute_f1, compute_em
 
 DOCS_PATH = os.path.join(ROOT, "data/nq/documents.jsonl")
@@ -84,13 +89,29 @@ def load_generator_with_fallback(forced=None):
     raise RuntimeError(f"No generator could be loaded; last error: {last}")
 
 
-def build_poisoned_corpus(target_qs, dose, clean_docs, clean_emb, encoder):
-    """Append `dose` poison docs per target question; return contaminated state."""
-    attack_targets = [
-        {"question": q["question"], "target_answer": q["target_answer"]}
-        for q in target_qs
-    ]
-    examples = run_attack(attack_targets, n_docs_per_question=dose, seed=42)
+def build_poisoned_corpus(target_qs, dose, clean_docs, clean_emb, encoder,
+                          poison_examples=None):
+    """Append `dose` poison docs per target question; return contaminated state.
+
+    poison_examples: pre-built list[PoisonedExample] (used for --attack poisonedrag).
+    When None, generates template-based poison from target_qs (original behaviour).
+    dose caps the number of docs taken per example (max 5 for PoisonedRAG).
+    """
+    if poison_examples is None:
+        attack_targets = [
+            {"question": q["question"], "target_answer": q["target_answer"]}
+            for q in target_qs
+        ]
+        examples = run_attack(attack_targets, n_docs_per_question=dose, seed=42)
+    else:
+        examples = [
+            type(ex)(
+                question=ex.question,
+                target_answer=ex.target_answer,
+                poisoned_docs=ex.poisoned_docs[:dose],
+            )
+            for ex in poison_examples
+        ]
     poison_docs = [d for ex in examples for d in ex.poisoned_docs]
 
     index, _ = load_index(INDEX_PATH, EMB_PATH)  # fresh clean index each call
@@ -204,6 +225,12 @@ def main():
     ap.add_argument("--output", default=OUTPUT_PATH)
     ap.add_argument("--quick", action="store_true",
                     help="tiny smoke run: 3 targets, 2 clean, dose=[5]")
+    ap.add_argument("--attack", choices=["template", "poisonedrag"], default="template",
+                    help="Attack source: template (original) or poisonedrag (GPT-4 generated)")
+    ap.add_argument("--adv-path", default="PoisonedRAG/results/adv_targeted_results/nq.json",
+                    help="Path to adv_targeted_results JSON (used when --attack poisonedrag)")
+    ap.add_argument("--resolve-gold", action="store_true",
+                    help="Attempt to fill gold_doc_id for PoisonedRAG targets via retrieval")
     args = ap.parse_args()
 
     if args.quick:
@@ -211,7 +238,8 @@ def main():
 
     generate = not args.no_generate
     print(f"Config: n_target={args.n_target} n_clean={args.n_clean} "
-          f"doses={args.doses} configs={args.configs} generate={generate}")
+          f"doses={args.doses} configs={args.configs} generate={generate} "
+          f"attack={args.attack}")
 
     print("Loading corpus + index + embeddings + encoder ...")
     clean_docs = load_documents(DOCS_PATH)
@@ -219,7 +247,22 @@ def main():
     encoder = SentenceTransformer(EMBEDDING_MODEL)
 
     questions = load_questions(QUESTIONS_PATH)
-    target_qs = questions[: args.n_target]
+
+    # --- Target question selection ---
+    poison_examples = None
+    if args.attack == "poisonedrag":
+        print(f"Loading PoisonedRAG adversarial data from {args.adv_path} ...")
+        poison_examples = load_poisonedrag(args.adv_path, n_docs=5)
+        target_qs = poisonedrag_questions(args.adv_path)[: args.n_target]
+        if args.resolve_gold:
+            print("Resolving gold_doc_ids for PoisonedRAG targets via retrieval ...")
+            clean_index, _ = load_index(INDEX_PATH, EMB_PATH)
+            resolve_gold_doc_ids(target_qs, clean_index, list(clean_docs), encoder)
+            filled = sum(1 for q in target_qs if q["gold_doc_id"] is not None)
+            print(f"  gold_doc_id filled for {filled}/{len(target_qs)} targets")
+    else:
+        target_qs = questions[: args.n_target]
+
     clean_qs = questions[200 : 200 + args.n_clean]  # never poisoned
 
     print("Loading Stage 1 classifier ...")
@@ -237,48 +280,64 @@ def main():
 
     models = (encoder, s1_model, s1_tok, nli, gen_model, gen_tok)
 
+    clean_configs = [c for c in ("none", "full") if c in args.configs]
+    cells_total = len(clean_configs) + len(args.doses) * len(args.configs)
+
     results = {
         "meta": {
             "n_target": args.n_target, "n_clean": args.n_clean,
             "doses": args.doses, "configs": args.configs,
             "nli_model": args.nli_model, "generator_model": gen_name,
             "generate": generate,
+            "attack": args.attack,
+            "adv_path": args.adv_path if args.attack == "poisonedrag" else None,
+            "status": "running",
+            "cells_total": cells_total,
+            "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         },
         "cells": [],
     }
+
+    def _dump(results, path):
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(results, f, indent=2)
 
     t_start = time.perf_counter()
 
     # ---- Clean baseline (no poison) ----
     print("\n=== CLEAN baseline (no poison) ===")
     cindex, _ = load_index(INDEX_PATH, EMB_PATH)
-    for defense in [c for c in ("none", "full") if c in args.configs]:
+    for defense in clean_configs:
         print(f"  [clean] defense={defense}")
         m = evaluate("clean", defense, cindex, clean_emb, clean_docs, set(),
                      target_qs, clean_qs, models, generate)
+        m["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
         results["cells"].append(m)
+        _dump(results, args.output)
 
     # ---- Poisoned conditions, by dose ----
     for dose in args.doses:
         print(f"\n=== POISONED dose={dose} (poison docs / target question) ===")
         index, emb, docs, pset = build_poisoned_corpus(
-            target_qs, dose, clean_docs, clean_emb, encoder)
+            target_qs, dose, clean_docs, clean_emb, encoder,
+            poison_examples=poison_examples)
         print(f"  injected {len(pset)} poison docs; corpus now {len(docs)} docs")
         for defense in args.configs:
             print(f"  [dose={dose}] defense={defense}")
             m = evaluate(f"poison_dose{dose}", defense, index, emb, docs, pset,
                          target_qs, clean_qs, models, generate)
+            m["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             results["cells"].append(m)
             asr = m["asr"]
             print(f"    ASR={asr} Recall@5={m['recall_at_5']} "
                   f"F1={m['f1']} S3_removed={m['intrinsic']['stage3_removed']} "
                   f"S3_poison_removed={m['intrinsic']['stage3_poison_removed']}")
+            _dump(results, args.output)
 
     results["meta"]["wall_clock_s"] = round(time.perf_counter() - t_start, 1)
-
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, "w") as f:
-        json.dump(results, f, indent=2)
+    results["meta"]["status"] = "complete"
+    _dump(results, args.output)
     print(f"\nSaved results to {args.output}  ({results['meta']['wall_clock_s']}s)")
 
     _print_summary(results)

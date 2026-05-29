@@ -167,3 +167,7 @@ cython_debug/
 # Data and model weights — regenerate with setup scripts
 data/
 results/
+
+# Vendored attack repo and paper PDF
+PoisonedRAG/
+poisonedrag.pdf
