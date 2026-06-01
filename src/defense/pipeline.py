@@ -1,21 +1,30 @@
 """Full 3-stage LayerGuard-RAG pipeline orchestrator."""
 
 import time
+
 import numpy as np
 from sentence_transformers import SentenceTransformer
+
 from config import (
-    TOP_K_RETRIEVAL, TOP_K_AFTER_TRUST, STAGE1_THRESHOLD,
-    CONTRADICTION_THRESHOLD, MIN_CONTRADICTIONS_TO_FLAG,
-    TRUST_WEIGHT_ALIGNMENT, TRUST_WEIGHT_CLASSIFIER, TRUST_WEIGHT_COHERENCE,
+    CONTRADICTION_THRESHOLD,
+    MIN_CONTRADICTIONS_TO_FLAG,
+    STAGE1_THRESHOLD,
+    TOP_K_AFTER_TRUST,
+    TOP_K_RETRIEVAL,
+    TRUST_WEIGHT_ALIGNMENT,
+    TRUST_WEIGHT_CLASSIFIER,
+    TRUST_WEIGHT_COHERENCE,
 )
-from src.retriever import retrieve
-from src.generator import generate_answer
 from src.defense.stage1_classifier import score_documents
 from src.defense.stage2_trust import score_and_rerank_documents
 from src.defense.stage3_nli import (
-    compute_pairwise_contradictions, build_contradiction_graph,
-    flag_outliers, filter_outliers,
+    build_contradiction_graph,
+    compute_pairwise_contradictions,
+    filter_outliers,
+    flag_outliers,
 )
+from src.generator import generate_answer
+from src.retriever import retrieve
 
 
 def defend_and_answer(
@@ -34,7 +43,11 @@ def defend_and_answer(
     top_k_retrieval: int = TOP_K_RETRIEVAL,
     top_k_trust: int = TOP_K_AFTER_TRUST,
     min_contradictions: int = MIN_CONTRADICTIONS_TO_FLAG,
-    trust_weights: tuple = (TRUST_WEIGHT_ALIGNMENT, TRUST_WEIGHT_CLASSIFIER, TRUST_WEIGHT_COHERENCE),
+    trust_weights: tuple = (
+        TRUST_WEIGHT_ALIGNMENT,
+        TRUST_WEIGHT_CLASSIFIER,
+        TRUST_WEIGHT_COHERENCE,
+    ),
 ) -> dict:
     """End-to-end defended query answering.
 
@@ -54,9 +67,11 @@ def defend_and_answer(
     # Stage 1: binary classifier filter
     t1 = time.perf_counter()
     poison_scores = score_documents(query, ret_docs, stage1_model, stage1_tokenizer)
-    s1_survivors = [(doc, s, ret_scores[i], ret_ids[i])
-                    for i, (doc, s) in enumerate(zip(ret_docs, poison_scores))
-                    if s <= tau1]
+    s1_survivors = [
+        (doc, s, ret_scores[i], ret_ids[i])
+        for i, (doc, s) in enumerate(zip(ret_docs, poison_scores))
+        if s <= tau1
+    ]
     if not s1_survivors:
         s1_survivors = [(ret_docs[0], poison_scores[0], ret_scores[0], ret_ids[0])]
     s1_docs, s1_classifier_scores, s1_ret_scores, s1_ids = zip(*s1_survivors)
@@ -66,9 +81,9 @@ def defend_and_answer(
     # Stage 2: trust scoring + re-rank
     # Stage 2: trust scoring + re-rank
     t2 = time.perf_counter()
-    
+
     s1_embs = np.array([doc_embeddings[doc_id] for doc_id in s1_ids])
-    
+
     s2_ranked = score_and_rerank_documents(
         documents=list(s1_docs),
         doc_embeddings=s1_embs,
@@ -77,10 +92,10 @@ def defend_and_answer(
         top_k=top_k_trust,
         weights=trust_weights,
     )
-    
+
     s2_docs = [item["document"] for item in s2_ranked]
     s2_trust_scores = [item["trust_score"] for item in s2_ranked]
-    
+
     timings["stage2_s"] = time.perf_counter() - t2
 
     # Stage 3: NLI contradiction check

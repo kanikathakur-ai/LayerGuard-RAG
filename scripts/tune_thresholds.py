@@ -9,10 +9,12 @@ Usage:
 import argparse
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import numpy as np
 from itertools import product
+
+import numpy as np
 from sklearn.metrics import fbeta_score
 
 

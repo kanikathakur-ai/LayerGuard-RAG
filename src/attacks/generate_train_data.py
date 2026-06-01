@@ -4,20 +4,27 @@ IMPORTANT: Uses held-out queries — these must be disjoint from the 200 test
 target questions to avoid data leakage.
 """
 
-import os
 import json
+import os
 import random
+
 from tqdm import tqdm
+
 from config import (
-    SYNTHETIC_POISONED_PAIRS, SYNTHETIC_CLEAN_PAIRS,
-    SYNTHETIC_TRAIN_DIR, SYNTHETIC_TRAIN_SPLIT, SYNTHETIC_VAL_SPLIT,
+    SYNTHETIC_CLEAN_PAIRS,
+    SYNTHETIC_POISONED_PAIRS,
+    SYNTHETIC_TRAIN_DIR,
+    SYNTHETIC_TRAIN_SPLIT,
+    SYNTHETIC_VAL_SPLIT,
 )
 from src.attacks.inject_poison import generate_poison_docs_for_question
 
 
 def generate_training_data(
-    held_out_qa_pairs: list[dict],   # [{"question": str, "answer": str, "gold_doc": str}]
-    retrieved_clean_docs: dict,       # {question: [doc_text, ...]} from normal retrieval
+    held_out_qa_pairs: list[
+        dict
+    ],  # [{"question": str, "answer": str, "gold_doc": str}]
+    retrieved_clean_docs: dict,  # {question: [doc_text, ...]} from normal retrieval
     n_poisoned: int = SYNTHETIC_POISONED_PAIRS,
     n_clean: int = SYNTHETIC_CLEAN_PAIRS,
     seed: int = 0,
@@ -61,8 +68,8 @@ def split_and_save(examples: list[dict], output_dir: str = SYNTHETIC_TRAIN_DIR) 
 
     splits = {
         "train": examples[:n_train],
-        "val": examples[n_train:n_train + n_val],
-        "test": examples[n_train + n_val:],
+        "val": examples[n_train : n_train + n_val],
+        "test": examples[n_train + n_val :],
     }
     for split_name, split_data in splits.items():
         path = os.path.join(output_dir, f"{split_name}.jsonl")

@@ -20,13 +20,15 @@ Outputs:
 import json
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
+
 from config import EMBEDDING_MODEL, INDEX_PATH, NQ_DIR, TOP_K_RETRIEVAL
-from src.retriever import load_documents, load_index, retrieve
 from src.attacks.generate_train_data import generate_training_data, split_and_save
+from src.retriever import load_documents, load_index, retrieve
 
 GOLD_SEARCH_K = 50  # retrieve top-50 to maximize chance of finding the gold doc
 
@@ -82,18 +84,22 @@ def main():
         if gold_id is not None:
             n_found += 1
     save_jsonl(test_qs, test_path)
-    print(f"gold_doc_id found for {n_found}/{len(test_qs)} test questions "
-          f"({100*n_found/len(test_qs):.1f}%); remainder set to null (skipped in Recall@5)")
+    print(
+        f"gold_doc_id found for {n_found}/{len(test_qs)} test questions "
+        f"({100*n_found/len(test_qs):.1f}%); remainder set to null (skipped in Recall@5)"
+    )
 
     # --- Generate and save synthetic training data ---
     print("Generating synthetic training data...")
     examples = generate_training_data(held_out, retrieved_clean_docs)
     split_and_save(examples)
     print("Done. Training data written to data/synthetic_train/")
-    print("Next: python scripts/train_stage1.py "
-          "--train-data data/synthetic_train/train.jsonl "
-          "--val-data data/synthetic_train/val.jsonl "
-          "--output-dir results/stage1_classifier")
+    print(
+        "Next: python scripts/train_stage1.py "
+        "--train-data data/synthetic_train/train.jsonl "
+        "--val-data data/synthetic_train/val.jsonl "
+        "--output-dir results/stage1_classifier"
+    )
 
 
 if __name__ == "__main__":
