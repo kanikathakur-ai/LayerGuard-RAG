@@ -127,9 +127,13 @@ python stage_3_jincheng/run_eval.py \
     --configs none stage1 stage12 full
 
 # PoisonedRAG adversarial attack
+# --resolve-gold fills gold_doc_id via retrieval for ~91/100 PoisonedRAG targets
+# (required for meaningful Recall@5; --generator-model matches the published run)
 python stage_3_jincheng/run_eval.py \
     --attack poisonedrag \
     --adv-path PoisonedRAG/results/adv_targeted_results/nq.json \
+    --resolve-gold \
+    --generator-model mistralai/Mistral-7B-Instruct-v0.3 \
     --output results/stage3_eval_poisonedrag.json
 
 # Template generalization (one template at a time)

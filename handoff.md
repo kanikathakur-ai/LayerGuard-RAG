@@ -12,6 +12,38 @@
 
 ---
 
+## 1a. Current Status — PoisonedRAG Eval (2026-05-28)
+
+The full end-to-end pipeline has been implemented and evaluated against the **official
+PoisonedRAG GPT-4 adversarial attack** on Natural Questions (NQ). See
+[`poisonedrag_eval_handoff.md`](poisonedrag_eval_handoff.md) for the complete analysis and
+[`README.md`](README.md) for the results table.
+
+**Run:** Mistral-7B-Instruct-v0.3 (Llama gated), NQ, n=100 target / 50 clean,
+dose ∈ {1, 3, 5} poison docs per query, `--resolve-gold` (91/100 gold docs resolved via
+retrieval).
+
+**ASR (undefended → stage1 → stage12 → full):**
+
+| Dose | none | stage1 | stage12 | full |
+|------|------|--------|---------|------|
+| 1    | 0.45 | 0.45   | 0.42    | 0.42 |
+| 3    | 0.67 | 0.67   | 0.70    | 0.70 |
+| 5    | 0.94 | 0.94   | 0.97    | 0.97 |
+
+**Key findings:**
+1. **Stage 1 gives zero protection** — trained on template-style poison, it doesn't generalize
+   to GPT-4-generated adversarial text. All 100 poison docs pass through at every dose.
+2. **Stage 2 slightly worsens ASR at higher doses** — the trust scorer rewards topically-relevant
+   docs, which poison docs are by design.
+3. **Stage 3 never fires** — GPT-4 adversarial passages are written to be plausible and
+   non-contradictory with peer documents; the NLI contradiction graph finds nothing to remove.
+
+**Primary next step:** Retrain Stage 1 on diverse / GPT-4-generated poison so the classifier
+learns semantic manipulation rather than surface-level template patterns.
+
+---
+
 ## 2. Architecture
 
 ```

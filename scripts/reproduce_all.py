@@ -4,7 +4,8 @@ Runs every experiment in the order they were originally produced:
   1. Fetch data (NQ corpus, FAISS index, embeddings) from HuggingFace
   2. Stage 2 trust-scoring metrics on NQ
   3. Stage 3 end-to-end ablation (dose x {none,stage1,stage12,full})
-  4. PoisonedRAG adversarial attack evaluation
+  4. PoisonedRAG GPT-4 adversarial attack evaluation (NQ, --resolve-gold: fills
+     gold_doc_id via retrieval for ~91/100 targets so Recall@5 is meaningful)
   5. Template-generalization runs (5 templates, --quick mode)
 
 Usage (from repo root):
@@ -176,6 +177,7 @@ def main() -> None:
             pr_args = [
                 "--attack", "poisonedrag",
                 "--adv-path", adv_path,
+                "--resolve-gold",
                 "--output", "results/stage3_eval_poisonedrag.json",
             ]
             if args.quick:
