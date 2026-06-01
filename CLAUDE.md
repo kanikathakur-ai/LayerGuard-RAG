@@ -46,6 +46,16 @@ python scripts/train_stage1.py \
 # Tune thresholds (τ₁, τ₃, trust weights) on val set
 python scripts/tune_thresholds.py
 
+# PoisonedRAG GPT-4 adversarial attack eval (primary hardness test)
+# --resolve-gold fills gold_doc_id via retrieval (~91/100 targets); required for
+# meaningful Recall@5 with PoisonedRAG's question set.
+python stage_3_jincheng/run_eval.py \
+    --attack poisonedrag \
+    --adv-path PoisonedRAG/results/adv_targeted_results/nq.json \
+    --resolve-gold \
+    --generator-model mistralai/Mistral-7B-Instruct-v0.3 \
+    --output results/stage3_eval_poisonedrag.json
+
 # Full pipeline experiment (poisoned)
 python scripts/run_experiments.py \
     --docs data/nq/documents.jsonl \
@@ -75,7 +85,9 @@ User Query → Retriever (top-10, FAISS + MiniLM) →
 - `src/retriever.py`, `src/generator.py`, `src/vanilla_rag.py` — retrieval, LLM wrapper, undefended baseline
 - `src/defense/stage1_classifier.py`, `stage2_trust.py`, `stage3_nli.py` — the three filters
 - `src/defense/pipeline.py:defend_and_answer()` — orchestrator; returns `{"answer", "surviving_docs", "stage1_filtered", "stage3_flagged", "trust_scores", "timings"}`
-- `src/attacks/` — PoisonedRAG injection + synthetic training-data generation
+- `src/attacks/` — PoisonedRAG injection + synthetic training-data generation;
+  `poisonedrag_attack.py` loads the official GPT-4 adversarial passages (`LM_targeted`
+  construction: `question + ". " + adv_text`), resolves `gold_doc_id` via retrieval
 - `src/baselines/` — perplexity filter and RAGuard ZKIP reference implementations
 - `eval/metrics.py:evaluate_run()` — ASR, Recall@5, F1, EM, latency
 - `eval/analyze_failures.py` — error analysis
@@ -102,6 +114,19 @@ Questions file (JSONL): `{"question": str, "answer": str, "gold_doc_id": int, "t
 5. **ASR measurement:** Case-insensitive substring match (not exact match), following PoisonedRAG methodology.
 6. **Memory budget:** Stage 1 (~350MB) + Stage 3 (~1.3GB) + Llama 4-bit (~6GB) ≈ 8GB. Load one large model at a time if GPU is constrained.
 
+## Key Empirical Findings (PoisonedRAG GPT-4, NQ, 2026-05-28)
+
+- **Stage 1 provides zero protection** against GPT-4-generated adversarial text — the DeBERTa
+  classifier was trained on template-style poison and learns surface patterns; 100% of
+  PoisonedRAG poison passes through at every dose. Primary next step: retrain on diverse /
+  GPT-4 poison.
+- **Stage 2 marginally hurts at higher doses** — trust scorer promotes topically-relevant poison
+  docs, raising ASR 0.94 → 0.97 at dose=5. On clean queries it costs ~10 pts of Recall@5.
+- **Stage 3 never fires** — GPT-4 adversarial passages are written to be plausible and
+  non-contradictory with peer documents, so the NLI graph finds no edges to cut.
+- **Clean ASR noise floor ≈ 0.05** — ~25% of PoisonedRAG target answers are ≤5 chars (e.g.,
+  `"2"`, `"yes"`, `"Paris"`); substring match produces false positives on unrelated queries.
+
 ## Evaluation Targets
 
 | Metric | Target |
@@ -118,3 +143,5 @@ Record ASR + Recall@5 for: Stage 1 only → Stages 1+2 → Full pipeline (1+2+3)
 
 - `handoff.md` — full project handoff (architecture rationale, paper extension, team context)
 - `stage2_handoff.md` — Stage 1 → Stage 2 transition notes, training results, model artifact location
+- `poisonedrag_eval_handoff.md` — full PoisonedRAG GPT-4 eval analysis: what was implemented,
+  completed-run metadata, all 14 result cells, key findings, and next steps
