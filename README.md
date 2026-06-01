@@ -209,6 +209,8 @@ LayerGuard-RAG/
 
 ### Caveats
 
-- **Poison "dose" vs corpus ratio:** the template attack generates a fixed number of poison docs per query, so a 5/10/20% corpus ratio collapses to the same content; we ablate over *dose* (poison docs per target question) instead.
-- **Stage 1 dominates the single-template NQ attack:** Stage 1 was trained on the same assertion template used in the main eval, so it removes 100% of poison upstream. Stage 3's incremental value requires poison that survives Stage 1 (harder/varied attacks, or multi-hop HotpotQA settings).
-- **Stage 2 Recall@5 cost:** per-query min-max trust normalization costs ~7 pts of Recall@5 on clean queries; this is the only stage that degrades clean retrieval.
+- **Poison "dose" vs corpus ratio:** PoisonedRAG poison is injected as a fixed number of docs per query (not by corpus ratio). We ablate over dose ∈ {1, 3, 5} poison docs per target question.
+- **Stage 1 does not generalise to GPT-4 poison:** The DeBERTa classifier was trained on template-style poison and learns surface patterns rather than semantic manipulation. It passes 100% of PoisonedRAG adversarial text — retraining on diverse/GPT-4 poison is the primary next step.
+- **Stage 2 hurts under adversarial conditions:** The trust scorer promotes topically-relevant poison docs, which slightly increases ASR at higher doses (0.94 → 0.97 at dose=5). On clean queries it costs ~10 pts of Recall@5 (0.870 → 0.774).
+- **Stage 3 does not fire on PoisonedRAG poison:** GPT-4-generated adversarial texts are written to be factually plausible and non-contradictory with peer documents, so the NLI contradiction graph finds nothing to remove.
+- **Clean ASR noise floor is 0.05:** ~25% of PoisonedRAG target answers are very short (e.g. "2", "yes", "Paris") — substring match produces false positives on clean queries unrelated to the attack.
