@@ -140,22 +140,30 @@ python stage_3_jincheng/run_eval.py \
 
 ---
 
-## Key Results (NQ, template attack)
+## Key Results (NQ, PoisonedRAG GPT-4 adversarial attack)
 
-Results produced with Mistral-7B-Instruct-v0.3 on an RTX 6000 Ada GPU. See [`stage_3_jincheng/RESULTS.md`](stage_3_jincheng/RESULTS.md) for full tables including intrinsic Stage-3 metrics and discussion.
+Results produced with Mistral-7B-Instruct-v0.3 on an RTX 6000 Ada GPU (2026-05-28).
+See [`poisonedrag_eval_handoff.md`](poisonedrag_eval_handoff.md) for full analysis and
+[`stage_3_jincheng/RESULTS.md`](stage_3_jincheng/RESULTS.md) for template-attack results and Stage 3 intrinsic metrics.
 
 | Condition | Defense | ASR ↓ | Recall@5 |
 |-----------|---------|-------|----------|
-| Clean | none | 0.000 | 0.694 |
-| Clean | full | 0.000 | 0.639 |
-| Poison dose=1 | none | 0.160 | 0.694 |
-| Poison dose=1 | **full** | **0.000** | 0.625 |
-| Poison dose=3 | none | 0.280 | 0.667 |
-| Poison dose=3 | **full** | **0.000** | 0.625 |
-| Poison dose=5 | none | 0.430 | 0.472 |
-| Poison dose=5 | **full** | **0.000** | 0.625 |
+| Clean | none | 0.050 | 0.870 |
+| Clean | full | 0.050 | 0.774 |
+| Poison dose=1 | none | 0.450 | 0.826 |
+| Poison dose=1 | stage1 | 0.450 | 0.826 |
+| Poison dose=1 | stage12 | 0.420 | 0.713 |
+| Poison dose=1 | **full** | 0.420 | 0.713 |
+| Poison dose=3 | none | 0.670 | 0.713 |
+| Poison dose=3 | stage1 | 0.670 | 0.713 |
+| Poison dose=3 | stage12 | 0.700 | 0.626 |
+| Poison dose=3 | **full** | 0.700 | 0.626 |
+| Poison dose=5 | none | 0.940 | 0.261 |
+| Poison dose=5 | stage1 | 0.940 | 0.261 |
+| Poison dose=5 | stage12 | 0.970 | 0.200 |
+| Poison dose=5 | **full** | 0.970 | 0.200 |
 
-**ASR target: ≤ 0.05** — achieved at every poison dose. **Recall@5 degradation** vs clean baseline: ~7% (Stage 2 trust normalization; Stage 3 adds no further cost). **Stage 3 latency: ~100 ms/query** (~5% of generation time), vs RAGuard ZKIP's k+2 LLM forward passes.
+**Key findings:** Stage 1 (trained on template-style poison) provides **no protection** against GPT-4-generated adversarial text — ASR is unchanged from undefended at all doses. Stage 2 and Stage 3 also do not reduce ASR on this harder attack; Stage 2 marginally increases ASR at higher doses as it promotes topically-relevant poison docs. The primary next step is retraining Stage 1 on diverse/GPT-4-generated poison. **Stage 3 latency: ~100 ms/query**, vs RAGuard ZKIP's k+2 LLM forward passes.
 
 ---
 
